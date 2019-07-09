@@ -1,0 +1,281 @@
+1.Select  * from student inner Join course  on course.course_id = student.course_id inner Join subject on subject.course_id=course.course_id;
+
+2.UPDATE student 
+set
+registration_date='2016-06-23'
+where std_id ='501';(for update a particular cell)
+
+3.SELECT CURRENT_DATE; (for fetching CURRENT_DATE)
+
+4. select * from student where registration_date > CURRENT_DATE;
+5. select * from student where registration_date < CURRENT_DATE;
+
+6.Select course.course_name, subject.sub from student 
+         inner Join course  on course.course_id = student.course_id 
+         inner Join subject on subject.course_id=course.course_id;         (inner join for three tables)
+
+7.select * from student 
+        INNER JOIN allocated_subject ON student.std_id = allocated_subject.std_id 
+        where name='SUjeet Kumar';
+
+
+8.select * from student,allocated_subject 
+		where student.std_id=allocated_subject.std_id
+		AND student.name='Rahul Kumar';
+
+9.select * from student where std_id in(select DISTINCT std_id from subject); (sub quary)
+
+10.1.select MAX(annual_salary) from teacher where annual_salary not in(select MAX(annual_salary) from teacher);
+    (to select second highest salary)
+
+10.2. select sub_id from allocated_subject GROUP BY sub_id HAVING COUNT(sub_id)>1; (for checking dublicate array)\
+
+10.3 select *,annual_salary/12 as monthly_salary from teacher; (fetch monthly salary from anual_salary)
+10.4 select * from allocated_subject LIMIT 10; (to display nth record)
+
+10.4 SELECT * FROM (
+      SELECT ROW_NUMBER() OVER (ORDER BY id ASC) AS RowNumber,
+      *
+      FROM allocated_subject
+      ) AS foo
+       WHERE RowNumber = 10;
+10.5 select std_id from student INTERCECT select std_id from subject;
+10.6 select COUNT(*) from student INNER JOIN course ON student.course_id = course.course_id where course_name='MCA';
+       (only count MCA student)
+
+(date) july 4 2019
+
+11.1 select *,marks>40   as pass from marks INNER JOIN subjects ON subjects.id=marks.sub_id where std_id ='501';
+
+11.2 select marks,CASE
+		WHEN marks>40 then 'pass'
+		ELSE 'fail' END
+		from marks;
+
+11.3 select *,marks, CASE when marks>40 then 'pass' else 'fail' END  from marks INNER JOIN subjects ON  
+		subjects.id=marks.sub_id where std_id ='501';
+
+11.4 Select *, (Select sum(marks) from marks where std_id='501')  from student where std_id='501';
+11.5 Select *, (Select sum(marks) from marks where std_id='501')  from student;
+11.5 with data as (select * from student)
+			select * from data;
+
+11.6 Select *,(Select sum(marks) from marks where std_id='501')as total_marks,
+		(select count(marks) from marks where std_id='501') as no_of_sub,
+		(Select sum(marks) from marks where std_id='501')/
+		(select count(marks) from marks where std_id='501') as percentage 
+		from student where std_id='501';
+
+11.7 Select *,(Select sum(marks) from marks where std_id=student.std_id)as total_marks from student;
+			(sum the marks of students for distinct id) 
+
+11.8 Select *,
+		(Select sum(marks) from marks where std_id=student.std_id)as total_marks,
+		(Select sum(marks) from marks where std_id=student.std_id)
+				/
+		(select count(marks) from marks where std_id=student.std_id) as percentage 
+		from student;
+
+11.9 with s_data as(select * from student),
+		m_data as(select * from marks),
+		m as (select *,(select sum(marks) from m_data where m_data.std_id=s_data.std_id) from s_data),
+		m_avg as (select *,sum/6 as avg from m)
+		select *,(CASE when avg>70 then 'GRADE A'
+			when avg>60 then 'GRADE B'
+			when avg>50 then 'GRADE C'
+			else 'FAIL'
+			end) as  status
+		from m_avg;
+
+
+     VIEW
+
+11.10 create view std_view as select * from student;
+
+11.11 create view student_data as(with s_data as(select * from student),
+		m_data as(select * from marks),
+		m as (select *,(select sum(marks) from m_data where m_data.std_id=s_data.std_id) from s_data),
+		m_avg as (select *,sum/6 as avg from m)                            
+		select *,(CASE when avg>70 then 'GRADE A'
+			when avg>60 then 'GRADE B'
+			when avg>50 then 'GRADE C'
+			else 'FAIL'
+			end) as  status
+		from m_avg);
+
+11.12 select id,name,teacher_id from subjects left join m_view on m_view.sub_id=subjects.id;
+  .13 create or replace view teacher_sub_view as 
+      select id,name,teacher_id from subjects left join m_view on m_view.sub_id=subjects.id;  
+  .14 select * from teacher_sub_view left join teacher on teacher_sub_view.teacher_id=teacher.teacher_id; 
+
+ 12 create view  teacher_data as select id,teacher_sub_view.name as subject_name,
+ 	teacher.teacher_id,teacher.name as 
+ 	teacher_name,age,city,zip_code,teaching_experiance,annual_salary from teacher_sub_view 
+ 	left join teacher on teacher_sub_view.teacher_id=teacher.teacher_id; 
+
+
+
+   (date 5/07/2019)
+ 13.1 create MATERIALIZED view t_view as select * from teacher with NO DATA;
+ 13.2 ReFRESH MATERIALIZED VIEW t_view;
+
+ 13.3 CREATE RECURSIVE VIEW Fibonacci(Num1,Num2) AS 
+		(              
+		 VALUES(0,1)
+		 UNION ALL
+		        SELECT 
+		  GREATEST(Num1,Num2),Num1 + Num2 AS FibonacciSeries 
+		 FROM Fibonacci
+		        WHERE Num2 < 50
+		);
+
+13.4 create or replace function refresh_mat_view()
+        returns trigger language plpgsql
+		as $$
+		begin
+ 			refresh materialized view t_view;
+  			return null;
+		end $$;
+
+13.5 create trigger refresh_mat_view  
+	    after insert or update or delete or truncate
+		on teacher for each statement 
+		execute procedure refresh_mat_view();
+
+
+		(for multiple tables)
+
+13.6 create or replace function refresh_view()
+		returns trigger language plpgsql
+		as $$
+		begin
+		refresh materialized view student_view;
+		return null;
+		end $$;
+
+	 create trigger refresh_student_view
+		after insert or update or delete or truncate
+		on student for each statement
+		execute procedure refresh_view();
+
+
+	create trigger refresh_student_view
+		after insert or update or delete or truncate
+		on student for each statement
+		execute procedure refresh_view();
+
+		(after execution of query all update , insert and delete on base tables reaflect on materialized view)
+ update student set name = 'Mithun Chauchan' where std_id='802';
+ 
+ insert into student(std_id,name,age,city,zip_code,course_id,registration_date) values('803','Rohit sharma',22,'Noida',986954,104,'2017-08-12');
+ select * from student_view;
+
+
+13.7  CREATE OR REPLACE FUNCTION get_sum(
+	   a NUMERIC,  
+	   b NUMERIC) 
+		RETURNS NUMERIC AS $$
+	BEGIN
+   		RETURN a + b;
+	END; $$
+	LANGUAGE plpgsql; 
+
+	select get_sum(15,25);
+
+	 (Method for sum of two number)
+
+
+        (indexes)
+
+14.1 create index on student(name);    (for creating indexes)
+14.2 drop index student_name_idx;       (for droping indexes)
+
+		(hstore)
+
+15.1 CREATE EXTENSION hstore;
+    CREATE TABLE books (
+   		id serial primary key,
+   		title VARCHAR (255),
+   		attr hstore );
+    INSERT INTO books (title, attr)
+		VALUES
+		   (
+		      'PostgreSQL Tutorial',
+		      '"paperback" => "243",
+		      "publisher" => "postgresqltutorial.com",
+		      "language"  => "English",
+		      "ISBN-13"   => "978-1449370000",
+		       "weight"    => "11.2 ounces"'
+		   );
+
+
+    SELECT attr FROM books;
+
+    SELECT attr -> 'ISBN-13' AS isbn FROM books;
+
+    UPDATE books SET attr = attr || '"freeshipping"=>"yes"' :: hstore; (to add new key value pair)
+
+    UPDATE books  SET attr = delete(attr, 'freeshipping');        (to remove existing key value pair)
+
+    SELECT akeys (attr) FROM books;  (to get all the keys from hstore column)
+
+    SELECT avals (attr) FROM books;  (to get all the values from hstore column)
+
+    SELECT title, hstore_to_json (attr) json FROM books;   (convert hstore to json format)
+
+    SELECT title, (EACH(attr) ).* FROM books;      (show all the data in key value pair)\
+
+
+    		(json data)
+
+    CREATE TABLE orders (
+	   ID serial NOT NULL PRIMARY KEY,
+	   info json NOT NULL);
+
+    INSERT INTO orders (info) VALUES ('{ "customer": "John Doe", "items": {"product": "Beer","qty": 6}}');
+
+    select * from orders;
+    select info->'items' from orders; (returns in form of object)
+
+    select info->>'items' from orders; (returns in the form of string)
+
+    select info from orders where info->'items'->>'qty'='2'; (use where cluse)
+
+    select info from orders where cast( info->'items'->>'qty' as integer)=2; (type cast into integer)
+
+    SELECT json_each (info) FROM orders; (like for each)
+
+
+    (function that returns table)
+
+    create or replace function get_student(c_id varchar)
+		returns table ( id varchar,s_name varchar,s_age integer,s_city varchar)
+		as $$ 
+		begin
+		 return query select std_id,name,age,city from student where course_id = c_id;
+		end;
+		$$
+		language 'plpgsql';
+
+	select get_student('110');
+
+
+			( if - else )
+	DO $$
+		DECLARE
+		  a integer := 20;
+		  b integer := 20;
+		BEGIN 
+		  IF a > b THEN
+		   RAISE NOTICE 'a is greater than b';
+		  END IF;
+		 
+		  IF a < b THEN
+		   RAISE NOTICE 'a is less than b';
+		  END IF;
+		 
+		  IF a = b THEN
+		   RAISE NOTICE 'a is equal to b';
+		  END IF;
+	END $$;
+
